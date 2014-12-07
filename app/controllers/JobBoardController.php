@@ -1,0 +1,112 @@
+<?php
+
+class JobBoardController extends BaseController {
+
+	/**
+	 * Lists all job postings (GET /api/v1/jobboard/)
+	 * or filter with query params:  (GET /api/v1/jobboard/?title=xxx&org_name=yyy... )
+	 * 
+	 * filter query params:
+	 * 	title (string): filters by title
+	 *	org_name (string): filters by organization name
+	 *
+         * order query params:
+         * 	orderbydate (boolean), if set to 'true', orders the posts by date
+	 * 
+	 * @return Response
+	 */
+	public function index()
+	{	
+		if (Input::get('title') == '' && Input::get('org_name') == '' && Input::get('orderbydate') == '')
+			$jobs = Job::all();
+		elseif (Input::get('title') == '' && Input::get('org_name') == '')
+			$jobs = Job::orderby('created_at')->get();
+		else { 
+			if (Input::get('title') != '')
+				$jobs = Job::where('title', Input::get('title'));
+			if (Input::get('org_name') != '' && isset($jobs))
+				$jobs = $jobs->where('org_name', Input::get('org_name'));
+			elseif (Input::get('org_name') != '') {
+				$jobs = Job::where('org_name', Input::get('org_name'));
+			}
+
+			if (Input::get('orderbydate') == 'true')
+				$jobs = $jobs->orderBy('created_at');
+			
+
+			$jobs = $jobs->get(); 
+		}
+
+		return Response::json(array(
+        		'jobs' => $jobs->toArray()),
+        		200
+    		);
+	}
+
+
+	/**
+	 * Creates a new job posting (POST /api/v1/jobboard/)
+	 *
+	 * @return Response
+	 */
+	public function store()
+	{
+		$job = new Job();
+	
+		$job->title = Input::get('title');
+		$job->org_name = Input::get('org_name');
+		$job->org_email = Input::get('org_email');
+		$job->salary = intval(Input::get('salary'));
+		$job->desc = Input::get('desc');
+		
+		$job->save();
+		
+		return Response::json(array(
+			'job' => $job->toArray()),
+			200
+		);
+	}
+
+	/**
+	 * Stores a new job application for a given job (POST /api/v1/jobboard/apply)
+	 *
+	 * @return Response
+	 */
+	public function apply()
+	{
+				
+		$app = new Application();
+		
+		$app->first_name = Input::get('first_name');
+		$app->last_name = Input::get('last_name');
+		$app->email = Input::get('email');
+		$app->notice_days = intval(Input::get('notice_days'));
+		$app->education = Input::get('education');
+		$app->experience = Input::get('experience');
+		$app->job_id = intval(Input::get('job_id'));
+
+		$app->save();
+
+			
+		return Response::json(array(
+			$app->toArray()),
+			200
+		);
+	}
+
+	/**
+	 * Stores a new job application for a given job (POST /api/v1/jobboard/apply)
+	 *
+	 * @return Response
+	 */
+	public function applictions($jobid)
+	{	
+		$apps = Application::where('job_id', $jobid)->get();
+			
+		return Response::json(array(
+			$apps->toArray()),
+			200
+		);
+	}
+
+}
